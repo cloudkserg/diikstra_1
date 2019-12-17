@@ -120,11 +120,16 @@ class Dijsktra
                 return;
             }
             //вес соседа
+            if (!this.weights[minNeighbor])
+                return;
             const neighborWeight = this.weights[minNeighbor].minWeight;
             //вес текущего расстояния до точки от соседа
-            const lineWeight = this.nodes[minNeighbor][node];
+            const lineWeight = parseInt(this.nodes[minNeighbor][node]);
+            if (lineWeight == 0) {
+                return;
+            }
             //Вес получаем как сумму веса текущей точке и веса соседа
-            const weight = neighborWeight + parseInt(lineWeight);
+            const weight = neighborWeight + lineWeight;
             const prev = minNeighbor;
             console.log('CHECK WEIGHT', minNeighbor, node);
 
