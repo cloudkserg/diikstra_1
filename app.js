@@ -1,146 +1,222 @@
+// Класс для описания точек на карте
 class Point {
+    //конструктор точки - сохраняет две координаты
     constructor (x, y) {
         this.x = x;
         this.y = y;
     }
 
+    //Создаем тчоку из строки
     static fromKey(key) {
+        //получаем координаты разделяя ключ через подчеркивание и беря первую координату как икс, втору как игрек
         const [x, y] = key.split('_');
         return new Point(x, y);
     }
 
+    //Получаем строку точки (для использования как ключа в массиве)
+    //строка = x _ y
     getKey() {
         return this.x + '_' + this.y;
     }
 }
-class Row {
-    constructor (y) {
-        this.cells = [];
-        this.y = y;
-    }
-    lastX() {
-        return this.cells.length;
-    }
-    addCell (weight = 0) {
-        const newCell = new WeightPoint(this.lastX(), this.y, weight);
-        this.cells.push(newCell);
-    }
-    /**
-     *
-     * @param row int[]
-     */
-    removeCell() {
-        this.cells.splice(-1, 1);
-    }
-
-}
-class WeightPoint {
+//Класс для создания ячейки
+class Cell {
+    //Констуктор сохраняет вес и координаты точки
     constructor(x, y, weight) {
         this.x = x;
         this.y = y;
         this.weight = weight;
+        //свойство говорящее в текущем пути находится точка или нет
         this.isPath = false;
+        this.pathWeight = '*';
     }
 
+    //Если надо из веса точки получить точку
     getPoint() {
         return new Point(this.x, this.y);
     }
+
+    getKey() {
+        return this.getPoint().getKey();
+    }
+}
+//Класс для описания строки в таблице
+class Row {
+    //Конструктор класса
+    //Сохраняет переменную и изначально имеет ноль ячеек (cells)
+    constructor (y) {
+        this.cells = [];
+        this.y = y;
+    }
+    //получить последнюю координату Х для вставки или удаления ячейки из строки
+    lastX() {
+        return this.cells.length;
+    }
+    //Добавляем ячейку с весом по умолчанию 0
+    addCell (weight = 0) {
+        //Создаем ячейку как класс Cell
+        //с координатами - y = y строки и x = последнему известному икс строки
+        const newCell = new Cell(this.lastX(), this.y, weight);
+        //сохраняем новую ячейку в строку
+        this.cells.push(newCell);
+    }
+    /**
+     * Удаляем ячейку последнюю из строки
+     */
+    removeCell() {
+        this.cells.splice(-1, 1);
+    }
 }
 
+//Класс для создания графика на рисунку
+class Graph {
+    constructor() {
+        this.rows = [];
+    }
+    lastY() {
+        return this.rows.length;
+    }
+    addRow(weights) {
+        const row = new Row(this.lastY());
+        weights.forEach(weight => row.addCell(weight));
+        this.rows.push(row);
+    }
 
-const startRow = new Row(0);
-startRow.addCell(1);
-startRow.addCell(2);
-const secondRow = new Row(1);
-secondRow.addCell(1);
-secondRow.addCell(2);
+    //функция для поиска соотвествующей ячейки по точке
+    findCell(point) {
+        return this.getCells().find(cell => cell.x == point.x && cell.y == point.y);
+    }
+
+    //Вернуть только ячейки графика
+    getCells() {
+        return _.flatMap(this.rows, row => row.cells);
+    }
+
+    //Функция для поиска соседей переданной точки
+    //возвращает соседей в формате {x_y => weight, x_y => wegith,...}
+    getNeighbors (point) {
+        //Возможные соседи - либо сверху, либо снизу
+        const availPoints = [
+            new Point(point.x-1, point.y),
+            new Point(point.x+1, point.y),
+            new Point(point.x, point.y-1),
+            new Point(point.x, point.y+1),
+        ];
+        //если находим такую тчоку на графике
+        return availPoints
+            //преобразуем точки в ячейки
+            .map(point =>this.findCell(point))
+            //фильтруем ненайденые
+            .filter(cell => !!cell)
+            //собираем из них соседей, как массив {x_y => weight, x_y => weight, ....}
+            .reduce((neighborsObject,cell) => {
+                neighborsObject[cell.getKey()] = cell.weight;
+                return neighborsObject;
+            }, {});
+    }
+
+    //чистим предыдущий путь удаляя все вершины из пути
+    clearPath() {
+        this.getCells().map(cell => cell.isPath = false);
+    }
+
+    setPath(pathPoints) {
+        //обходим все точки
+        pathPoints.forEach(pathPoint => {
+            //если находим для нее ячейку
+            const cell = this.findCell(pathPoint);
+            if (cell) {
+                //задаем свойство = true
+                cell.isPath = true;
+            }
+        });
+    }
+
+    removeRow() {
+        rows.splice(-1, 1);
+    }
+}
+
+//Задаем начальную карту
+const graph = new Graph();
+//добавляем строку с несколькими точками с весами в порядке что указаны
+graph.addRow([1, 2, 1, 5]);
+//добавляем строку с несколькими точками с весами в порядке что указаны
+graph.addRow([1, 20, 1, 90]);
+// //добавляем строку с несколькими точками с весами в порядке что указаны
+graph.addRow([20, 1, 1, 1]);
+//добавляем строку с несколькими точками с весами в порядке что указаны
+graph.addRow([1, 5, 1, 5]);
+//добавляем строку с несколькими точками с весами в порядке что указаны
+graph.addRow([20, 1, 5, 1]);
+
+//Создаем приложение
 new Vue({
     el: '#app',
     data: {
+        //По умолчанию ищем путь из точки с ноль, ноль
         startPoint: new Point(0, 0),
-        endPoint: new Point(1, 1),
-        rows: [startRow, secondRow],
-        result: ''
+        //Ищем путь по умолчанию к тчоке 3,2
+        endPoint: new Point(3, 2),
+        //наш граф храним тут
+        graph: graph
     },
     methods: {
-        getNeighbors (point) {
-            const availPoints = [
-                new Point(point.x-1, point.y),
-                new Point(point.x+1, point.y),
-                new Point(point.x, point.y-1),
-                new Point(point.x, point.y+1),
-            ];
-            return availPoints.map(availPoint => {
-                return this.findCell(availPoint);
-            })
-            .filter(cell => !!cell)
-            .reduce((neighborsObject,cell) => {
-                neighborsObject[cell.getPoint().getKey()] = cell.weight;
-                return neighborsObject;
-            }, {});
-        },
-        findMoreRightPath(rows, startPoint, endPoint) {
-            const dijkstra = new Dijsktra();
-            rows.forEach(row => {
-                row.cells.forEach(cell => {
-                    const point = cell.getPoint();
-                    dijkstra.addNode(point.getKey(), this.getNeighbors(point))
-                });
+
+        //функция которая находит правильный путь из вершины start в вершину end
+        //возвращает как набор точке от одной к другой (набор координат)
+        //[Point(0,1), Point(1,1)]
+        findMoreRightPath(dijkstra) {
+
+            //Все ячейки заносим в этот класс
+            this.graph.getCells().forEach(cell => {
+                //Каждую ячейку заносим как ее ключ и ключи всех ее соседей с весом
+               dijkstra.addNode(cell.getKey(), this.graph.getNeighbors(cell));
             });
-            const pathKeys = dijkstra.path(startPoint.getKey(), endPoint.getKey());
+
+            //получаем ключи путей с наименьшим весом от start к end
+            const pathKeys = dijkstra.path(this.startPoint.getKey(), this.endPoint.getKey());
             console.log('PATH_KEYS', pathKeys);
+            //Возвращаем их как набор точек
             return pathKeys.map(pathKey => Point.fromKey(pathKey));
         },
-        findCell(point) {
-          let findedCell = null;
-          this.rows.forEach(row => {
-             row.cells.forEach(cell => {
-                if (cell.x == point.x && cell.y == point.y) {
-                    findedCell = cell;
-                }
-             });
-          });
-          return findedCell;
-        },
 
-        clearPathClassInPoints() {
-            this.rows.map(row => {
-                row.cells.map(cell => {
-                    cell.isPath = false;
-                });
-            });
-        },
-
+        // что делаем при нажатии на кнопку
         calcSubmit() {
-            const pathPoints = this.findMoreRightPath(this.rows, this.startPoint, this.endPoint);
-            this.clearPathClassInPoints();
-            pathPoints.forEach(pathPoint => {
-                const cell = this.findCell(pathPoint);
-                if (!cell) {
-                    throw new Error('Not found cell with x,y = ' + pathPoint.x +','+pathPoint.y)
-                }
-                cell.isPath = true;
+            //создаем класс для поиска пути
+            const dijkstra = new Dijsktra();
+            //сначала чистим предыдущий путь
+            this.graph.clearPath();
+            //потом находим точки нового пути
+            const pathPoints = this.findMoreRightPath(dijkstra);
+            Object.keys(dijkstra.weights).forEach(node => {
+               const point = Point.fromKey(node);
+               const cell = this.graph.findCell(point);
+               cell.pathWeight = dijkstra.weights[node].minWeight;
             });
+            //затем задаем только в них значение path = true
+            this.graph.setPath(pathPoints);
+
+
         },
 
-        lastY() {
-            return this.rows.length - 1;
-        },
-
+        //при нажатии на кнопку добавить ячейку срабатывает эта функция
         addCell(row) {
             row.addCell();
         },
+        //при нажатии на кнопку удалить ячейку срабатывает эта функция
         removeCell(row) {
           row.removeCell();
         },
 
+        //при нажатии на кнопку добавить строку срабатывает эта функция
         addRow() {
-            const row = new Row(this.lastY() + 1);
-            this.rows.push(row);
-            row.addCell();
+            this.graph.addRow([0]);
         },
+
+        //при нажатии на кнопку удалить строку срабатывает эта функция
         removeRow() {
-            this.rows.splice(-1, 1);
+            this.graph.removeRow();
         }
     },
 });

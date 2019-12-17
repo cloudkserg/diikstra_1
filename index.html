@@ -23,14 +23,15 @@
     </div>
     <div class="row">
         <table>
-            <tr v-for="row in rows">
+            <tr v-for="row in graph.rows">
                 <td :class="{path: cell.isPath}" v-for="(cell,k) in row.cells">
-                    <span v-html="row.cells[k].x + ',' + row.cells[k].y"></span>
+                    <span class="badge bg-info" v-html="row.cells[k].x + ',' + row.cells[k].y"></span>
+                    <span class="badge bg-warning" v-html="row.cells[k].pathWeight"></span>
                     <input v-model="row.cells[k].weight"  type="number"/>
                 </td>
                 <td>
-                    <div class="btn btn-success" @click="addCell(row)">Add Cell</div>
-                    <div class="btn btn-danger" @click="removeCell(row)">Remove Cell</div>
+                    <span class="btn btn-success" @click="addCell(row)">+</span>
+                    <span class="btn btn-danger" @click="removeCell(row)">-</span>
                 </td>
             </tr>
             <tr>
@@ -42,15 +43,23 @@
             <tr>
                 <td>
                     <label class="label">StartPoint</label>
+                    <div>
                     x: <input v-model="startPoint.x" type="number"/>
+                    </div>
+                    <div>
                     y: <input v-model="startPoint.x" type="number"/>
+                    </div>
                 </td>
             </tr>
             <tr>
                 <td>
                     <label class="label">EndPoint</label>
+                    <div>
                     x: <input v-model="endPoint.x" type="number"/>
+                    </div>
+                    <div>
                     y: <input v-model="endPoint.y" type="number"/>
+                    </div>
                 </td>
             </tr>
             <tr>
@@ -64,6 +73,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.15/lodash.min.js"></script>
 <script src="djkstra.js"></script>
 <script src="app.js"></script>
 
