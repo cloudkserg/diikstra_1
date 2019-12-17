@@ -133,7 +133,7 @@ class Graph {
     }
 
     removeRow() {
-        rows.splice(-1, 1);
+        this.rows.splice(-1, 1);
     }
 }
 
