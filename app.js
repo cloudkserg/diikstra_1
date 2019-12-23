@@ -176,7 +176,6 @@ new Vue({
 
             //получаем ключи путей с наименьшим весом от start к end
             const pathKeys = dijkstra.path(this.startPoint.getKey(), this.endPoint.getKey());
-            console.log('PATH_KEYS', pathKeys);
             //Возвращаем их как набор точек
             return pathKeys.map(pathKey => Point.fromKey(pathKey));
         },
@@ -197,6 +196,63 @@ new Vue({
             //затем задаем только в них значение path = true
             this.graph.setPath(pathPoints);
 
+// create an array with nodes
+            var nodes = new vis.DataSet(
+                _.chain(dijkstra.nodes)
+                .map((node, key) => {
+                    const [x,y]  = key.split('_');
+                    return {id: key, label: `${x},${y}`};
+                })
+                .sort((node) => {
+                    const [x1, y1] = node.id.split('_');
+                    return parseInt(y1)*10 + parseInt(x1);
+                })
+                .reverse()
+                .value()
+            );
+
+            var edges = new vis.DataSet(
+                _.chain(dijkstra.nodes)
+                .map((childs, key) =>
+                    _.map(childs, (childWeight, childKey) => ({
+                        from: childKey,
+                        label: '' + childWeight,
+                        font: {
+                            align: "middle"
+                        },
+                        to: key
+                    }))
+                )
+                .flatten()
+                .map(node=> {
+                    if (_.find(pathPoints, point => `${point.x}_${point.y}` == node.from) == null) {
+                        return node;
+                    }
+                    if (_.find(pathPoints, point => `${point.x}_${point.y}` == node.to) == null) {
+                        return node;
+                    }
+                    return _.merge(node, {
+                        background: {
+                            enabled: true,
+                            color: "#ffff00"
+                        }
+                    });
+                })
+                .uniqWith((node1, node2) =>
+                    (node1.from == node2.from && node1.to == node2.to) ||
+                    (node1.from == node2.to && node1.to == node2.from)
+                ).value()
+            );
+
+// create a network
+            var container = document.getElementById("mynetwork");
+            var data = {
+                nodes: nodes,
+                edges: edges
+            };
+            var options = {
+            };
+            var network = new vis.Network(container, data, options);
 
         },
 
